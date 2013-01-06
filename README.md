@@ -11,3 +11,8 @@ This is my first time using iOS SDK, Cocoa and RubyMotion, so, critics are appre
 
 ### Copyrights
 Pull to refresh stuff has been "legally stealed" with copyrights from [Richard Owens](https://github.com/rjowens/TableViewPullRefresh).
+
+### Screenshots
+![App Icon](https://raw.github.com/sxua/hnmotion/screenshots/screenshots/app-icon.png)
+![App Root](https://raw.github.com/sxua/hnmotion/screenshots/screenshots/app-root.png)
+![App Post](https://raw.github.com/sxua/hnmotion/screenshots/screenshots/app-post.png)
