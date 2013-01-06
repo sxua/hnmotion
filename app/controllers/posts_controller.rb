@@ -1,42 +1,56 @@
 class PostsController < UITableViewController
-  attr_accessor :data
+  attr_accessor :posts, :page
 
   def viewDidLoad
     super
     self.title = 'Hacker News'
-    @data = []
-    self.loadPosts
+    @posts, @page = [], 1
+
+    Post.loadAllInto(:@posts, withPage:@page, delegate:self)
 
     @refreshHeaderView ||= begin
-      view_size = self.tableView.bounds.size
-      header = RefreshTableHeaderView.alloc.initWithFrame(CGRectMake(0, 0 - view_size.height, view_size.width, view_size.height))
+      viewSize = self.tableView.bounds.size
+      header = RefreshTableHeaderView.alloc.initWithFrame(CGRectMake(0, 0 - viewSize.height, viewSize.width, viewSize.height))
       header.delegate = self
       header.refreshLastUpdatedDate
       header
     end
 
     self.tableView.addSubview(@refreshHeaderView)
+
+    aboutButton = UIBarButtonItem.alloc.initWithTitle('About', style:UIBarButtonItemStyleBordered, target:self, action:'about')
+    self.navigationItem.rightBarButtonItem = aboutButton
   end
 
+  def about
+    self.navigationController.pushViewController(AboutController.new, animated:true)
+  end
+
+  # TableView
+
   def tableView(tableView, cellForRowAtIndexPath:indexPath)
-    identifier = "Cell"
-    cell = tableView.dequeueReusableCellWithIdentifier(identifier) || UITableViewCell.alloc.initWithStyle(UITableViewCellStyleSubtitle, reuseIdentifier:identifier)
-    cell.textLabel.text = "#{indexPath.row + 1}. #{@data[indexPath.row]['title']}"
-    cell.detailTextLabel.text = @data[indexPath.row]['url']
+    post = @posts[indexPath.row]
+
+    cell = tableView.dequeueReusableCellWithIdentifier("Cell") || UITableViewCell.alloc.initWithStyle(UITableViewCellStyleSubtitle, reuseIdentifier:"Cell")
+    cell.textLabel.text = "#{indexPath.row + 1}. #{post.title}"
+    cell.detailTextLabel.text = post.description
     cell
   end
 
   def tableView(tableView, numberOfRowsInSection:section)
-    @data.count
+    @posts.count
   end
 
   def tableView(tableView, didSelectRowAtIndexPath:indexPath)
     tableView.deselectRowAtIndexPath(indexPath, animated:true)
-    App.alert(@data[indexPath.row]['url'])
+    post = @posts[indexPath.row]
+    self.navigationController.pushViewController(PostController.alloc.initWithObject(post), animated:true)
   end
 
+  # ReloadTableView
+
   def reloadTableViewDataSource
-    self.loadPosts
+    Post.loadAllInto(:@posts, withPage:@page, delegate:self)
     @reloading = true
   end
 
@@ -45,6 +59,8 @@ class PostsController < UITableViewController
     @refreshHeaderView.refreshScrollViewDataSourceDidFinishLoading(self.tableView)
   end
 
+  # ScrollView
+
   def scrollViewDidScroll(scrollView)
     @refreshHeaderView.refreshScrollViewDidScroll(scrollView)
   end
@@ -52,6 +68,8 @@ class PostsController < UITableViewController
   def scrollViewDidEndDragging(scrollView, willDecelerate:decelerate)
     @refreshHeaderView.refreshScrollViewDidEndDragging(scrollView)
   end
+
+  # RefreshTableHeader
 
   def refreshTableHeaderDidTriggerRefresh(view)
     self.reloadTableViewDataSource
@@ -64,18 +82,5 @@ class PostsController < UITableViewController
 
   def refreshTableHeaderDataSourceLastUpdated(view)
     NSDate.date
-  end
-
-  def loadPosts
-    BW::HTTP.get('http://hndroidapi.appspot.com/news/format/json/page/1') do |response|
-      if response.ok?
-        @data = BW::JSON.parse(response.body.to_str)['items']
-        self.tableView.reloadData
-      elsif response.status_code.to_s =~ /40\d/
-        App.alert("Server responded with error")
-      else
-        App.alert(response.status_description)
-      end
-    end
   end
 end
